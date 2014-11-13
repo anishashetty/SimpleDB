@@ -1,6 +1,10 @@
 package simpledb.buffer;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import simpledb.file.*;
+
 
 /**
  * Manages the pinning and unpinning of buffers to blocks.
@@ -10,6 +14,7 @@ import simpledb.file.*;
 class BasicBufferMgr {
    private Buffer[] bufferpool;
    private int numAvailable;
+   private HashMap<Block, Buffer> bufferPoolMap;
    
    /**
     * Creates a buffer manager having the specified number 
@@ -25,10 +30,12 @@ class BasicBufferMgr {
     * @param numbuffs the number of buffer slots to allocate
     */
    BasicBufferMgr(int numbuffs) {
-      bufferpool = new Buffer[numbuffs];
+	   
+	   bufferPoolMap= new HashMap<Block, Buffer>(numbuffs);
+     // bufferpool = new Buffer[numbuffs];
       numAvailable = numbuffs;
-      for (int i=0; i<numbuffs; i++)
-         bufferpool[i] = new Buffer();
+     // for (int i=0; i<numbuffs; i++)
+       //  bufferpool[i] = new Buffer();
    }
    
    /**
@@ -102,18 +109,26 @@ class BasicBufferMgr {
    }
    
    private Buffer findExistingBuffer(Block blk) {
-      for (Buffer buff : bufferpool) {
+     /* for (Buffer buff : bufferpool) {
          Block b = buff.block();
          if (b != null && b.equals(blk))
             return buff;
       }
-      return null;
+      return null; */
+	   //author: Anisha changing to use Map 
+	  return bufferPoolMap.get(blk);
+	   
+	   
    }
    
    private Buffer chooseUnpinnedBuffer() {
-      for (Buffer buff : bufferpool)
-         if (!buff.isPinned())
+	    ArrayList<Buffer> Mapbufferpool=(ArrayList<Buffer>) bufferPoolMap.values();
+	   
+	   for (Buffer buff : Mapbufferpool)
+         if (!buff.isPinned() && buff !=null)
          return buff;
-      return null;
+      return null; 
+	   
+	   
    }
 }
