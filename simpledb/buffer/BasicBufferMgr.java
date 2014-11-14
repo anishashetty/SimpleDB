@@ -43,9 +43,13 @@ class BasicBufferMgr {
     * @param txnum the transaction's id number
     */
    synchronized void flushAll(int txnum) {
-      for (Buffer buff : bufferpool)
-         if (buff.isModifiedBy(txnum))
-         buff.flush();
+	   ArrayList<Buffer> Mapbufferpool = (ArrayList<Buffer>) bufferPoolMap.values();
+	   
+	   
+	      for (Buffer buff : Mapbufferpool)
+	      {  if (buff!=null && buff.isModifiedBy(txnum))
+	         buff.flush();
+		   }
    }
    
    /**
