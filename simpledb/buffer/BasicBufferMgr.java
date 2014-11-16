@@ -15,7 +15,7 @@ class BasicBufferMgr {
    private Buffer[] bufferpool;
    private int numAvailable;
    private HashMap<Block, Buffer> bufferPoolMap;
-   
+    int pointer=0;     //aj
    /**
     * Creates a buffer manager having the specified number 
     * of buffer slots.
@@ -61,13 +61,46 @@ class BasicBufferMgr {
     * @param blk a reference to a disk block
     * @return the pinned buffer
     */
+	
+	//aj: changed pin method, added clock logic
    synchronized Buffer pin(Block blk) {
       Buffer buff = findExistingBuffer(blk);
+      int count=0;
+      Buffer buff1;
       if (buff == null) {
          buff = chooseUnpinnedBuffer();
          if (buff == null)
-            return null;
-         buff.assignToBlock(blk);
+         {
+        	 while(pointer<numAvailable)
+        	 {
+        		 buff1=bufferpool[pointer];
+        		 
+        			 if(buff1.pins==0)
+        			 {
+        				 unpin(buff1);
+        				 //pin the new block
+        				 buff1.assignToBlock(blk);
+        				 break;
+        			 }
+        			 else 
+        			 {
+        				 buff1.pins--;
+        			 }
+        		
+        		 pointer++;
+        		 if(pointer%numAvailable==0)
+        		 {
+        			 pointer=0;
+        		 }
+        		 count++;
+        		 if(count==5){
+        			 break;
+        		 }
+        	 }
+         }
+        	 
+        	// return null;
+         //buff.assignToBlock(blk);
       }
       if (!buff.isPinned())
          numAvailable--;
