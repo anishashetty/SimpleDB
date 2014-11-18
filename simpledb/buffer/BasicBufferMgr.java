@@ -1,7 +1,8 @@
 package simpledb.buffer;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import simpledb.file.*;
 
@@ -29,13 +30,17 @@ class BasicBufferMgr {
     * is called first.
     * @param numbuffs the number of buffer slots to allocate
     */
-   BasicBufferMgr(int numbuffs) {
+   public BasicBufferMgr(int numbuffs) {
 	   
 	   bufferPoolMap= new HashMap<Block, Buffer>(numbuffs);
-     // bufferpool = new Buffer[numbuffs];
-      numAvailable = numbuffs;
-     // for (int i=0; i<numbuffs; i++)
-       //  bufferpool[i] = new Buffer();
+	   numAvailable = numbuffs;
+		
+	   bufferpool = new Buffer[numbuffs];	
+	   
+		/*for (int i=0; i<numbuffs; i++)
+		{   
+			bufferPoolMap.put(null,new Buffer());
+		}*/
    }
    
    /**
@@ -43,13 +48,16 @@ class BasicBufferMgr {
     * @param txnum the transaction's id number
     */
    synchronized void flushAll(int txnum) {
-	   ArrayList<Buffer> Mapbufferpool = (ArrayList<Buffer>) bufferPoolMap.values();
-	   
-	   
-	      for (Buffer buff : Mapbufferpool)
-	      {  if (buff!=null && buff.isModifiedBy(txnum))
-	         buff.flush();
-		   }
+	   Collection<Buffer> Mapbufferpool =  bufferPoolMap.values();
+	   Iterator<Buffer> itr = Mapbufferpool.iterator();
+	  
+	   Buffer buff=new Buffer();
+	   while (itr.hasNext())
+	   {
+	      buff=(Buffer)itr.next();
+		  if (buff!=null && buff.isModifiedBy(txnum))
+	         buff.flush();		        
+	   }
    }
    
    /**
@@ -113,7 +121,8 @@ class BasicBufferMgr {
    }
    
    private Buffer findExistingBuffer(Block blk) {
-     /* for (Buffer buff : bufferpool) {
+     
+	  /* for (Buffer buff : bufferpool) {
          Block b = buff.block();
          if (b != null && b.equals(blk))
             return buff;
@@ -126,11 +135,38 @@ class BasicBufferMgr {
    }
    
    private Buffer chooseUnpinnedBuffer() {
-	    ArrayList<Buffer> Mapbufferpool=(ArrayList<Buffer>) bufferPoolMap.values();
+	   Buffer buff=new Buffer();
+	   // Case 1:
+	   // Check if Map size is zero. In this case return a new Buff element
 	   
-	   for (Buffer buff : Mapbufferpool)
-         if (!buff.isPinned() && buff !=null)
+	   if(bufferPoolMap.size()==0)
+	   {
+		   bufferPoolMap.put(buff.block(),buff);
+		   return buff;
+	   }
+	   else
+	   {
+	   //Case 2:
+	   //Check if there exists an unpinned buff in current bufferPoolMap
+	   Collection<Buffer> Mapbufferpool =  bufferPoolMap.values();
+	   Iterator<Buffer> itr = Mapbufferpool.iterator();
+	   while (itr.hasNext())
+	   {
+	     buff=(Buffer) itr.next();
+		 if (!buff.isPinned() && buff !=null)
          return buff;
+	   }
+	   
+	   //Case 3:
+	   //There are no unpinned buffers. Now check to see if the capacity<numAvailable
+	   if(bufferPoolMap.size()< numAvailable)
+	   {
+		   buff=new Buffer();
+		   bufferPoolMap.put(buff.block(),buff);
+		   return buff;
+	   }
+	   
+	   }
       return null; 
 	   
 	   
