@@ -15,6 +15,7 @@ import simpledb.file.*;
 class BasicBufferMgr {
    private Buffer[] bufferpool;
    private int numAvailable;
+   private int numbuffs;
    private HashMap<Block, Buffer> bufferPoolMap;
     int pointer=0;     //aj
    /**
@@ -34,7 +35,7 @@ class BasicBufferMgr {
 	   
 	   bufferPoolMap= new HashMap<Block, Buffer>(numbuffs);
 	   numAvailable = numbuffs;
-		
+	   this.numbuffs=numbuffs;
 	   bufferpool = new Buffer[numbuffs];	
 	   
 		/*for (int i=0; i<numbuffs; i++)
@@ -79,11 +80,11 @@ class BasicBufferMgr {
          buff = chooseUnpinnedBuffer();
          if (buff == null)
          {
-        	 while(pointer<numAvailable)
+        	 while(pointer<numbuffs)
         	 {
-        		 buff1=bufferpool[pointer];
+        		 buff1=getIndexedBuff(pointer);
         		 
-        			 if(buff1.pins==0)
+        			 if(buff1.getpincount()==0)
         			 {
         				 unpin(buff1);
         				 //pin the new block
@@ -92,11 +93,11 @@ class BasicBufferMgr {
         			 }
         			 else 
         			 {
-        				 buff1.pins--;
+        				 buff1.unpin();
         			 }
         		
         		 pointer++;
-        		 if(pointer%numAvailable==0)
+        		 if(pointer%numbuffs==0)
         		 {
         			 pointer=0;
         		 }
@@ -114,6 +115,20 @@ class BasicBufferMgr {
          numAvailable--;
       buff.pin();
       return buff;
+   }
+   public Buffer getIndexedBuff(int position)
+   {
+	   Buffer buff=new Buffer();
+	   Collection<Buffer> Mapbufferpool =  bufferPoolMap.values();
+	   Iterator<Buffer> itr = Mapbufferpool.iterator();
+	   int i=0;
+	   while (itr.hasNext() && i==position)
+	   {
+	     buff=(Buffer) itr.next();
+	     i++;
+	   }
+	   return buff;
+	   
    }
    
    /**

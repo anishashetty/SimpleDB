@@ -16,12 +16,12 @@ import simpledb.file.*;
 public class Buffer {
    private Page contents = new Page();
    private Block blk = null;
-   private int pins = 0;
+   private int pins = 5;
    private int modifiedBy = -1;  // negative means not modified
    private int logSequenceNumber = -1; // negative means no corresponding log record
 
    /**
-    * Creates a new buffer, wrapping a new 
+    * Creates a new buffer, wrapping a new  m
     * {@link simpledb.file.Page page}.  
     * This constructor is called exclusively by the 
     * class {@link BasicBufferMgr}.   
@@ -47,7 +47,10 @@ public class Buffer {
    public int getInt(int offset) {
       return contents.getInt(offset);
    }
-
+   public int getpincount() {
+	      return pins;
+	   }
+  
    /**
     * Returns the string value at the specified offset of the
     * buffer's page.
@@ -170,7 +173,7 @@ public class Buffer {
       flush();
       blk = b;
       contents.read(blk);
-      pins = 0;
+      pins = 5;
    }
 
    /**
@@ -185,6 +188,6 @@ public class Buffer {
       flush();
       fmtr.format(contents);
       blk = contents.append(filename);
-      pins = 0;
+      pins = 5;
    }
 }
