@@ -131,10 +131,13 @@ public class Buffer {
 
    /**
     * Increases the buffer's pin count.
+    * make it equal to 5 every time a user requests this page
+    * Juhi
     */
    void pin() {
-      pins++;
-   }
+	      pins=5;
+		   //pins++;
+	   }
 
    /**
     * Decreases the buffer's pin count.
