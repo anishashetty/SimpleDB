@@ -89,6 +89,7 @@ class BasicBufferMgr {
         				 unpin(buff1);
         				 //pin the new block
         				 buff1.assignToBlock(blk);
+        				 bufferPoolMap.put(blk,buff);
         				 break;
         			 }
         			 else 
@@ -109,7 +110,9 @@ class BasicBufferMgr {
          }
         	 
         	// return null;
-         //buff.assignToBlock(blk);
+         //if there is an existing unpinned buffer
+         buff.assignToBlock(blk);
+         bufferPoolMap.put(blk,buff);
       }
       if (!buff.isPinned())
          numAvailable--;
@@ -122,12 +125,15 @@ class BasicBufferMgr {
 	   Collection<Buffer> Mapbufferpool =  bufferPoolMap.values();
 	   Iterator<Buffer> itr = Mapbufferpool.iterator();
 	   int i=0;
-	   while (itr.hasNext() && i==position)
+	   while (itr.hasNext())
 	   {
 	     buff=(Buffer) itr.next();
+	     if(i==position)
+	    	 return buff;
+	     	 
 	     i++;
 	   }
-	   return buff;
+	   return null;
 	   
    }
    
@@ -202,15 +208,18 @@ class BasicBufferMgr {
 	   {
 	     buff=(Buffer) itr.next();
 		 if (!buff.isPinned() && buff !=null)
+		 { 
+		 bufferPoolMap.remove(buff.block());
          return buff;
+		 }
 	   }
 	   
 	   //Case 3:
 	   //There are no unpinned buffers. Now check to see if the capacity<numAvailable
-	   if(bufferPoolMap.size()< numAvailable)
+	   if(bufferPoolMap.size()< numbuffs)
 	   {
 		   buff=new Buffer();
-		   bufferPoolMap.put(buff.block(),buff);
+		   //bufferPoolMap.put(buff.block(),buff);
 		   return buff;
 	   }
 	   
