@@ -16,9 +16,10 @@ import simpledb.file.*;
 public class Buffer {
    private Page contents = new Page();
    private Block blk = null;
-   private int pins = 5;
+   private int pins = 0;
    private int modifiedBy = -1;  // negative means not modified
    private int logSequenceNumber = -1; // negative means no corresponding log record
+   private int RC=-1; //when pin count is not zero
 
    /**
     * Creates a new buffer, wrapping a new  m
@@ -51,6 +52,22 @@ public class Buffer {
 	      return pins;
 	   }
   
+   
+   public void setRC()
+   {
+	   RC=6;
+   }
+   
+   public int getRC()
+   {
+	   return RC;
+   }
+   
+   public void decrementRC()
+   {
+	   RC--;
+   }
+   
    /**
     * Returns the string value at the specified offset of the
     * buffer's page.
@@ -131,10 +148,14 @@ public class Buffer {
 
    /**
     * Increases the buffer's pin count.
+    * make it equal to 5 every time a user requests this page
+    * Juhi
     */
    void pin() {
-      pins++;
-   }
+	      //pins=5;
+		   pins++;
+		   RC=-1;
+	   }
 
    /**
     * Decreases the buffer's pin count.

@@ -17,7 +17,8 @@ class BasicBufferMgr {
    private int numAvailable;
    private int numbuffs;
    private HashMap<Block, Buffer> bufferPoolMap;
-    int pointer=0;     //aj
+   //pointer to rotating head : juhi
+   int pointer=0;     //aj
    /**
     * Creates a buffer manager having the specified number 
     * of buffer slots.
@@ -74,17 +75,24 @@ class BasicBufferMgr {
 	//aj: changed pin method, added clock logic
    synchronized Buffer pin(Block blk) {
       Buffer buff = findExistingBuffer(blk);
+    //counter to count how many iterations the pointer takes over the buffer list
       int count=0;
       Buffer buff1;
       if (buff == null) {
          buff = chooseUnpinnedBuffer();
          if (buff == null)
          {
+        	//G-clock[5] replacement policy
+        	 
         	 while(pointer<numbuffs)
         	 {
         		 buff1=getIndexedBuff(pointer);
-        		 
-        			 if(buff1.getpincount()==0)
+        		if(buff1.getpincount()==0) 
+        		{
+        			buff1.setRC();
+        			
+        		}
+        			 if(buff1.getRC()==0)
         			 {
         				 unpin(buff1);
         				 //pin the new block
@@ -92,21 +100,26 @@ class BasicBufferMgr {
         				 bufferPoolMap.put(blk,buff);
         				 break;
         			 }
-        			 else 
+        			 else if(buff1.getRC()>0)
         			 {
-        				 buff1.unpin();
+        				
+        				 buff1.decrementRC();
+        				 //buff1.unpin();
         			 }
-        		
         		 pointer++;
         		 if(pointer%numbuffs==0)
         		 {
         			 pointer=0;
         		 }
         		 count++;
-        		 if(count==5){
+        		//changed to i+1 as per modification in proj description
+        		 if(count==6){
         			 break;
         		 }
         	 }
+        	 if(count==6)
+        		 return null;
+         
          }
         	 
         	// return null;
