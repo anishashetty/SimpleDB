@@ -83,22 +83,28 @@ class BasicBufferMgr {
          if (buff == null)
          {
         	//G-clock[5] replacement policy
+        	 
         	 while(pointer<numbuffs)
         	 {
         		 buff1=getIndexedBuff(pointer);
-        		 
-        			 if(buff1.getpincount()==0)
+        		if(buff1.getpincount()==0) 
+        		{
+        			buff1.setRC();
+        			
+        		}
+        			 if(buff1.getRC()==0)
         			 {
         				 unpin(buff1);
         				 //pin the new block
         				 buff1.assignToBlock(blk);
         				 break;
         			 }
-        			 else 
+        			 else if(buff1.getRC()>0)
         			 {
-        				 buff1.unpin();
+        				
+        				 buff1.decrementRC();
+        				 //buff1.unpin();
         			 }
-        		
         		 pointer++;
         		 if(pointer%numbuffs==0)
         		 {
@@ -110,6 +116,9 @@ class BasicBufferMgr {
         			 break;
         		 }
         	 }
+        	 if(count==6)
+        		 return null;
+         
          }
         	 
         	// return null;
