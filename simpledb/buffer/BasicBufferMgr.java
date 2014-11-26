@@ -3,6 +3,8 @@ package simpledb.buffer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import simpledb.file.*;
 
@@ -16,7 +18,7 @@ class BasicBufferMgr {
    private Buffer[] bufferpool;
    private int numAvailable;
    private int numbuffs;
-   private HashMap<Block, Buffer> bufferPoolMap;
+   private LinkedHashMap<Block, Buffer> bufferPoolMap;
    //pointer to rotating head : juhi
    int pointer=0;     //aj
    /**
@@ -34,7 +36,7 @@ class BasicBufferMgr {
     */
    public BasicBufferMgr(int numbuffs) {
 	   
-	   bufferPoolMap= new HashMap<Block, Buffer>(numbuffs);
+	   bufferPoolMap= new LinkedHashMap<Block, Buffer>(numbuffs);
 	   numAvailable = numbuffs;
 	   this.numbuffs=numbuffs;
 	   bufferpool = new Buffer[numbuffs];	
@@ -75,80 +77,55 @@ class BasicBufferMgr {
 	//aj: changed pin method, added clock logic
    synchronized Buffer pin(Block blk) {
       Buffer buff = findExistingBuffer(blk);
-    //counter to count how many iterations the pointer takes over the buffer list
-      int count=0;
-      Buffer buff1;
       if (buff == null) {
          buff = chooseUnpinnedBuffer();
-         if (buff == null)
-         {
-        	//G-clock[5] replacement policy
-        	 
-        	 while(pointer<numbuffs)
-        	 {
-        		 buff1=getIndexedBuff(pointer);
-        		if(buff1.getpincount()==0) 
-        		{
-        			buff1.setRC();
-        			
-        		}
-        			 if(buff1.getRC()==0)
-        			 {
-        				 unpin(buff1);
-        				 //pin the new block
-        				 buff1.assignToBlock(blk);
-        				 bufferPoolMap.put(blk,buff);
-        				 break;
-        			 }
-        			 else if(buff1.getRC()>0)
-        			 {
-        				
-        				 buff1.decrementRC();
-        				 //buff1.unpin();
-        			 }
-        		 pointer++;
-        		 if(pointer%numbuffs==0)
-        		 {
-        			 pointer=0;
-        		 }
-        		 count++;
-        		//changed to i+1 as per modification in proj description
-        		 if(count==6){
-        			 break;
-        		 }
-        	 }
-        	 if(count==6)
-        		 return null;
          
-         }
-        	 
-        	// return null;
-         //if there is an existing unpinned buffer
+         
          buff.assignToBlock(blk);
-         bufferPoolMap.put(blk,buff);
+         addToBufferPoolMap(buff);
+        
       }
+       
       if (!buff.isPinned())
          numAvailable--;
       buff.pin();
       return buff;
    }
-   public Buffer getIndexedBuff(int position)
+   public void addToBufferPoolMap(Buffer inputBuff)
    {
-	   Buffer buff=new Buffer();
-	   Collection<Buffer> Mapbufferpool =  bufferPoolMap.values();
-	   Iterator<Buffer> itr = Mapbufferpool.iterator();
 	   int i=0;
-	   while (itr.hasNext())
+	   int index=pointer-1;
+	   if (index<0)
+		   index=numbuffs-1;
+	   LinkedHashMap<Block,Buffer> temp= new LinkedHashMap<Block,Buffer>();
+	   if (bufferPoolMap.size()<numbuffs)
+		   bufferPoolMap.put(inputBuff.block(), inputBuff);
+	   if (index==0)
 	   {
-	     buff=(Buffer) itr.next();
-	     if(i==position)
-	    	 return buff;
-	     	 
-	     i++;
+		   temp.put(inputBuff.block(), inputBuff);
+		   temp.putAll(bufferPoolMap);
+		   bufferPoolMap=temp;
 	   }
-	   return null;
+	   
+	   else
+	   {
+		   for(Map.Entry<Block, Buffer> entry : bufferPoolMap.entrySet()){
+			   if(i==index)
+			   {
+				   temp.put(inputBuff.block(), inputBuff);
+			   }
+			   else {
+				   temp.put(entry.getKey(), entry.getValue());
+			   }
+			   i++;
+		   }
+		   
+		   bufferPoolMap=temp;
+	   }
+		   
 	   
    }
+   
    
    /**
     * Allocates a new block in the specified file, and
@@ -213,29 +190,56 @@ class BasicBufferMgr {
 	   }
 	   else
 	   {
-	   //Case 2:
+		   //Case 2:
+		   //There are no unpinned buffers. Now check to see if the capacity<numAvailable
+		   if(bufferPoolMap.size()< numbuffs)
+		   {
+			   buff=new Buffer();
+			   //bufferPoolMap.put(buff.block(),buff);
+			   return buff;
+		   }
+	   //Case 3:
 	   //Check if there exists an unpinned buff in current bufferPoolMap
+		   
+	   int count=0;
+	   
 	   Collection<Buffer> Mapbufferpool =  bufferPoolMap.values();
 	   Iterator<Buffer> itr = Mapbufferpool.iterator();
-	   while (itr.hasNext())
+	   while (count <=6)
+      {
+		  int indx = 0;
+	   while (itr.hasNext())   //re initialize iterator   
 	   {
+		 
 	     buff=(Buffer) itr.next();
-		 if (!buff.isPinned() && buff !=null)
+	     if (indx >= pointer)
+	     {
+	    	 
+		 if (!buff.isPinned() && buff.getRC() == 0) 
 		 { 
+			 
 		 bufferPoolMap.remove(buff.block());
-         return buff;
+		 if (indx == bufferPoolMap.size())
+		 {
+			 pointer=0;
+		 }
+		 else{
+		 pointer=indx+1;  //check
+		 }
+		 return buff;
+		 }
+		 else
+		 {
+			 buff.decrementRC();
+			 //pointer=indx+1;
 		 }
 	   }
-	   
-	   //Case 3:
-	   //There are no unpinned buffers. Now check to see if the capacity<numAvailable
-	   if(bufferPoolMap.size()< numbuffs)
-	   {
-		   buff=new Buffer();
-		   //bufferPoolMap.put(buff.block(),buff);
-		   return buff;
+	     indx ++;  
 	   }
-	   
+	   pointer=0;
+	   count++;
+	   itr=Mapbufferpool.iterator();  //re initializes
+      }
 	   }
       return null; 
 	   

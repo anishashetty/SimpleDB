@@ -55,7 +55,7 @@ public class Buffer {
    
    public void setRC()
    {
-	   RC=6;
+	   RC=5; //or 5
    }
    
    public int getRC()
@@ -162,6 +162,10 @@ public class Buffer {
     */
    void unpin() {
       pins--;
+      if(pins== 0)
+      {
+    	  setRC();
+      }
    }
 
    /**
@@ -194,7 +198,7 @@ public class Buffer {
       flush();
       blk = b;
       contents.read(blk);
-      pins = 5;
+      pins = 0;
    }
 
    /**
@@ -209,6 +213,6 @@ public class Buffer {
       flush();
       fmtr.format(contents);
       blk = contents.append(filename);
-      pins = 5;
+      pins = 0;
    }
 }
